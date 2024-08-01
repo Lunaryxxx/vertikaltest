@@ -1,27 +1,43 @@
-from flask import Flask, request, Response
-import numpy as np
+from flask import Flask, request, jsonify
 import joblib
-import os
+import numpy as np
+import pandas as pd
 
-app = Flask(__name__)
-
-# Load the trained Random Forest model
+# Load the trained model and label encoder
 model = joblib.load('vertikaltest.pkl')
+label_encoder = joblib.load('label_encoder.pkl')
+
+# Initialize Flask app
+app = Flask(__name__)
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Get sensor readings from POST request
-    data = request.get_json(force=True)
-    sensor_readings = data['sensor_readings']
+    try:
+        # Get the JSON data from the request
+        data = request.get_json()
 
-    # Convert list to NumPy array and reshape to 2D
-    sensor_readings = np.array(sensor_readings).reshape(1, -1)
+        # Extract the sensor readings
+        sensor_readings = data.get("sensor_readings")
 
-    # Make prediction using the Random Forest model
-    prediction = model.predict(sensor_readings)
+        # Validate the input data
+        if not sensor_readings or len(sensor_readings) != 4:
+            return jsonify({'error': 'Invalid input. Expecting 4 sensor readings.'}), 400
 
-    # Send back the result as plain text with the desired format
-    return Response(f"{prediction[0]}", mimetype='text/plain')
+        # Convert the sensor readings to a DataFrame with the expected feature names
+        input_data = pd.DataFrame([sensor_readings], columns=['TDS_ppm', 'TEMPERATURE_c', 'HUMIDITY', 'pH'])
 
+        # Make predictions using the loaded model
+        prediction = model.predict(input_data)
+
+        # Decode the prediction back to the original label
+        decoded_prediction = label_encoder.inverse_transform(prediction)[0]
+
+        # Return the prediction as a JSON response
+        return jsonify({'prediction': decoded_prediction})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+# Start the Flask app
 if __name__ == '__main__':
-    app.run(port=int(os.environ.get("PORT", 8080)), host='0.0.0.0', debug=True)
+    app.run(debug=True)
