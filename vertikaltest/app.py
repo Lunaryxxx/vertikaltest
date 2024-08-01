@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Load the trained Random Forest model
-model = joblib.load('random_forest_regressor_model.pkl')
+model = joblib.load('vertikaltest.pkl')
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -20,11 +20,8 @@ def predict():
     # Make prediction using the Random Forest model
     prediction = model.predict(sensor_readings)
 
-    # Round the prediction to the nearest integer
-    prediction_rounded = round(prediction[0])
-
     # Send back the result as plain text with the desired format
-    return Response(f"{prediction_rounded} Days", mimetype='text/plain')
+    return Response(f"{prediction[0]}", mimetype='text/plain')
 
 if __name__ == '__main__':
     app.run(port=int(os.environ.get("PORT", 8080)), host='0.0.0.0', debug=True)
