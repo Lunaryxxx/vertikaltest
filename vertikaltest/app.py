@@ -24,7 +24,11 @@ def predict():
             return jsonify({'error': 'Invalid input. Expecting 4 sensor readings.'}), 400
 
         # Convert the sensor readings to a DataFrame with the expected feature names
+        # Ensure the columns are in the correct order that the model expects
         input_data = pd.DataFrame([sensor_readings], columns=['TDS_ppm', 'TEMPERATURE_c', 'HUMIDITY', 'pH'])
+
+        # Reorder the DataFrame columns to match the order used during model training
+        input_data = input_data[['TEMPERATURE_c', 'HUMIDITY', 'TDS_ppm', 'pH']]
 
         # Make predictions using the loaded model
         prediction = model.predict(input_data)
